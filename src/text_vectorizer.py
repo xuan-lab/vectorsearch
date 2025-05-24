@@ -67,17 +67,50 @@ class TextVectorizer:
         # 如果有 NLTK，进行更高级的预处理
         if NLTK_AVAILABLE:
             try:
-                # 分词
-                tokens = word_tokenize(text)
+                # 检测文本语言类型
+                chinese_chars = len([c for c in text if '\u4e00' <= c <= '\u9fff'])
+                total_chars = len([c for c in text if c.isalnum()])
+                is_primarily_chinese = total_chars > 0 and chinese_chars / total_chars > 0.3
                 
-                # 移除停用词
-                stop_words = set(stopwords.words('english'))
-                tokens = [token for token in tokens if token not in stop_words and token.isalpha()]
-                  # 词干提取
-                if self.stemmer:
-                    tokens = [self.stemmer.stem(token) for token in tokens]
-                
-                text = ' '.join(tokens)
+                if is_primarily_chinese:
+                    # 中文文本处理：只进行基本清理，保留中文字符
+                    import re
+                    # 保留中英文字符、数字和空格，移除标点符号
+                    text = re.sub(r'[^\w\s\u4e00-\u9fff]', '', text)
+                    # 移除多余空格
+                    text = ' '.join(text.split())
+                else:
+                    # 英文文本处理：使用 NLTK 的完整预处理
+                    tokens = word_tokenize(text)
+                    
+                    # 移除停用词，但保留有意义的字符
+                    stop_words = set(stopwords.words('english'))
+                    # 改进的过滤：保留字母、数字，或者包含中文字符的 token
+                    filtered_tokens = []
+                    for token in tokens:
+                        # 跳过停用词
+                        if token.lower() in stop_words:
+                            continue
+                        # 保留字母、数字或包含中文字符的 token
+                        if (token.isalpha() or token.isdigit() or 
+                            any('\u4e00' <= c <= '\u9fff' for c in token)):
+                            filtered_tokens.append(token)
+                    
+                    tokens = filtered_tokens
+                    
+                    # 词干提取（只对英文单词）
+                    if self.stemmer:
+                        stemmed_tokens = []
+                        for token in tokens:
+                            # 只对纯英文 token 进行词干提取
+                            if token.isalpha() and not any('\u4e00' <= c <= '\u9fff' for c in token):
+                                stemmed_tokens.append(self.stemmer.stem(token))
+                            else:
+                                stemmed_tokens.append(token)
+                        tokens = stemmed_tokens
+                    
+                    text = ' '.join(tokens)
+                    
             except LookupError:
                 print("NLTK 数据未下载，使用基础预处理")
                 # 基础清理 - 保留中英文字符、数字和空格
