@@ -1,0 +1,18 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"args": [
+				"examples/semantic_search.py",
+				"--mode",
+				"interactive"
+			],
+			"command": "python",
+			"group": "build",
+			"isBackground": false,
+			"label": "运行语义搜索交互模式",
+			"problemMatcher": [],
+			"type": "shell"
+		}
+	]
+}
